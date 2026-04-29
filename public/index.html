@@ -308,6 +308,79 @@
       font-size:12px; color:var(--text-dim);
       margin-top:4px; text-align:center;
     }
+
+    /* ---- FLOATING RANKING BUTTON ---- */
+    .ranking-fab {
+      position:fixed; bottom:24px; right:20px; z-index:100;
+      width:52px; height:52px;
+      background:linear-gradient(135deg, var(--amber), #e17055);
+      border:none; border-radius:50%;
+      font-size:22px; color:white;
+      cursor:pointer;
+      box-shadow:0 4px 20px rgba(253,203,110,0.35);
+      transition:all 0.25s ease;
+      display:none;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .ranking-fab:active { transform:scale(0.9); }
+    .ranking-fab.visible { display:flex; align-items:center; justify-content:center; }
+
+    /* ---- RANKING OVERLAY ---- */
+    .ranking-overlay {
+      position:fixed; inset:0; z-index:200;
+      background:var(--bg-primary);
+      display:flex; flex-direction:column;
+      transform:translateY(100%);
+      transition:transform 0.35s cubic-bezier(0.22,1,0.36,1);
+      overflow-y:auto;
+    }
+    .ranking-overlay.open { transform:translateY(0); }
+
+    .ranking-overlay .ro-header {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:18px 20px 12px;
+      border-bottom:1px solid var(--border);
+      position:sticky; top:0; background:var(--bg-primary); z-index:1;
+    }
+    .ranking-overlay .ro-title {
+      font-family:'Outfit',sans-serif; font-weight:800; font-size:20px;
+      background:linear-gradient(135deg, var(--cyan), var(--accent));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    }
+    .ro-close {
+      width:36px; height:36px; border-radius:50%;
+      background:var(--bg-card); border:1px solid var(--border);
+      color:var(--text); font-size:18px;
+      cursor:pointer; display:flex; align-items:center; justify-content:center;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .ro-close:active { background:var(--bg-card-hover); }
+
+    .ranking-overlay .ro-body { padding:16px 20px 32px; }
+    .ranking-overlay .ro-timer {
+      font-family:'JetBrains Mono',monospace;
+      font-size:22px; color:var(--cyan);
+      text-align:center; margin-bottom:16px;
+    }
+
+    .ro-row {
+      display:grid; grid-template-columns:40px 1fr 60px;
+      align-items:center; gap:10px;
+      background:var(--bg-card); border:1.5px solid var(--border);
+      border-radius:12px; padding:12px 14px; margin-bottom:8px;
+    }
+    .ro-row.is-me { border-color:var(--accent); background:var(--accent-glow); }
+    .ro-row.is-finished { border-color:var(--green); }
+    .ro-pos { font-family:'Outfit',sans-serif; font-weight:900; font-size:20px; text-align:center; }
+    .ro-pos.p1{color:var(--amber);} .ro-pos.p2{color:#c0c0c0;} .ro-pos.p3{color:#cd7f32;}
+    .ro-info-name { font-family:'Outfit',sans-serif; font-weight:700; font-size:15px; }
+    .ro-info-progress { display:flex; align-items:center; gap:8px; margin-top:4px; }
+    .ro-prog-track { flex:1; height:4px; background:rgba(255,255,255,0.06); border-radius:99px; overflow:hidden; }
+    .ro-prog-fill { height:100%; border-radius:99px; background:linear-gradient(90deg,var(--cyan),var(--accent)); transition:width .6s; }
+    .ro-prog-fill.done { background:var(--green); }
+    .ro-prog-label { font-size:11px; color:var(--text-dim); white-space:nowrap; }
+    .ro-time { font-family:'JetBrains Mono',monospace; font-size:13px; text-align:right; color:var(--text-dim); }
+    .ro-time.finished { color:var(--green); }
   </style>
 </head>
 <body>
@@ -372,6 +445,21 @@
   <p style="color:var(--text-dim);">Felicitats, heu completat totes les proves!</p>
   <div class="finish-time" id="finish-time">--:--</div>
   <div class="finish-sub">Temps total</div>
+</div>
+
+<!-- ============ FLOATING RANKING BUTTON ============ -->
+<button class="ranking-fab" id="ranking-fab" onclick="toggleRanking()">🏆</button>
+
+<!-- ============ RANKING OVERLAY ============ -->
+<div class="ranking-overlay" id="ranking-overlay">
+  <div class="ro-header">
+    <span class="ro-title">🏆 Rànquing en directe</span>
+    <button class="ro-close" onclick="toggleRanking()">✕</button>
+  </div>
+  <div class="ro-body">
+    <div class="ro-timer" id="ro-timer">00:00</div>
+    <div id="ro-list"></div>
+  </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
@@ -605,6 +693,102 @@
   const shakeStyle = document.createElement('style');
   shakeStyle.textContent = `@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}`;
   document.head.appendChild(shakeStyle);
+
+  // ---- RANKING OVERLAY ----
+  let rankingOpen = false;
+  let rankingData = null;
+  let rankingTimerInterval = null;
+
+  function toggleRanking() {
+    rankingOpen = !rankingOpen;
+    document.getElementById('ranking-overlay').classList.toggle('open', rankingOpen);
+    if (rankingOpen) {
+      fetchRanking();
+    } else {
+      clearInterval(rankingTimerInterval);
+    }
+  }
+
+  async function fetchRanking() {
+    try {
+      const res = await fetch('/api/ranking');
+      rankingData = await res.json();
+      renderRanking();
+    } catch(e) { console.error(e); }
+  }
+
+  function renderRanking() {
+    if (!rankingData) return;
+    const { ranking, started, startTime } = rankingData;
+
+    // Timer
+    clearInterval(rankingTimerInterval);
+    if (started && startTime) {
+      const updateRoTimer = () => {
+        document.getElementById('ro-timer').textContent = formatTime(Date.now() - startTime);
+      };
+      updateRoTimer();
+      rankingTimerInterval = setInterval(updateRoTimer, 1000);
+    } else {
+      document.getElementById('ro-timer').textContent = 'Esperant inici...';
+    }
+
+    const list = document.getElementById('ro-list');
+    list.innerHTML = '';
+    ranking.forEach((r, idx) => {
+      const pos = idx + 1;
+      const pct = (r.completedCount / 9 * 100).toFixed(0);
+      const isMe = r.teamId === selectedTeam;
+      const medals = {1:'🥇',2:'🥈',3:'🥉'};
+
+      let rowClass = 'ro-row';
+      if (isMe) rowClass += ' is-me';
+      if (r.finished) rowClass += ' is-finished';
+
+      const posClass = (pos <= 3 && r.finished) ? ` p${pos}` : '';
+      const medal = (r.finished && medals[pos]) ? medals[pos] + ' ' : '';
+      const timeStr = r.finished ? formatTime(r.finishedAt - startTime) : `${r.completedCount}/9`;
+
+      const row = document.createElement('div');
+      row.className = rowClass;
+      row.innerHTML = `
+        <div class="ro-pos${posClass}">${medal}${pos}</div>
+        <div>
+          <div class="ro-info-name">Equip ${r.teamId}${isMe ? ' (tu)' : ''}</div>
+          <div class="ro-info-progress">
+            <div class="ro-prog-track"><div class="ro-prog-fill${r.finished?' done':''}" style="width:${pct}%"></div></div>
+            <span class="ro-prog-label">${r.completedCount}/9</span>
+          </div>
+        </div>
+        <div class="ro-time${r.finished ? ' finished' : ''}">${timeStr}</div>
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  // Show/hide fab based on screen
+  function updateFab() {
+    const fab = document.getElementById('ranking-fab');
+    const onGame = document.getElementById('challenge-screen').classList.contains('active')
+      || document.getElementById('waiting-screen').classList.contains('active')
+      || document.getElementById('finished-screen').classList.contains('active');
+    fab.classList.toggle('visible', onGame);
+  }
+
+  // Patch showScreen to also update fab
+  const _origShowScreen = showScreen;
+  showScreen = function(id) {
+    _origShowScreen(id);
+    updateFab();
+  };
+
+  // Update ranking when socket sends updates
+  socket.on('state-update', (data) => {
+    if (rankingOpen && data.ranking) {
+      rankingData = { ranking: data.ranking, started: data.gameState.started, startTime: data.gameState.startTime };
+      renderRanking();
+    }
+  });
 </script>
 </body>
 </html>
