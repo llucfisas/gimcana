@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Gimcana — Enginyeria de Dades</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #07070f;
+      --bg-secondary: #0f1023;
+      --bg-card: rgba(255,255,255,0.04);
+      --bg-card-hover: rgba(255,255,255,0.08);
+      --accent: #6c5ce7;
+      --accent-glow: rgba(108,92,231,0.3);
+      --cyan: #00cec9;
+      --cyan-glow: rgba(0,206,201,0.3);
+      --green: #00b894;
+      --green-glow: rgba(0,184,148,0.35);
+      --red: #ff6b6b;
+      --amber: #fdcb6e;
+      --text: #f0f0f5;
+      --text-dim: #8b8ba3;
+      --border: rgba(255,255,255,0.08);
+      --radius: 16px;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    html, body { 
+      height:100%; 
+      font-family:'DM Sans',sans-serif; 
+      background: var(--bg-primary); 
+      color: var(--text);
+      overflow-x: hidden;
+    }
+    body::before {
+      content:'';
+      position:fixed; top:0; left:0; right:0; bottom:0;
+      background: 
+        radial-gradient(ellipse 600px 400px at 20% 10%, rgba(108,92,231,0.12), transparent),
+        radial-gradient(ellipse 500px 500px at 80% 90%, rgba(0,206,201,0.08), transparent);
+      pointer-events:none; z-index:0;
+    }
+
+    /* ---- SCREENS ---- */
+    .screen { 
+      display:none; 
+      flex-direction:column; 
+      align-items:center; 
+      min-height:100vh; 
+      padding:24px 20px 40px; 
+      position:relative; z-index:1;
+      animation: fadeIn 0.4s ease;
+    }
+    .screen.active { display:flex; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ---- HEADER ---- */
+    .logo-area { text-align:center; margin-bottom:32px; margin-top: 16px; }
+    .logo-area h1 { 
+      font-family:'Outfit',sans-serif; 
+      font-weight:900; 
+      font-size:28px; 
+      letter-spacing:-0.5px;
+      background: linear-gradient(135deg, var(--cyan), var(--accent));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    }
+    .logo-area p { color:var(--text-dim); font-size:14px; margin-top:6px; }
+
+    /* ---- TEAM SELECT ---- */
+    .team-grid {
+      display:grid; grid-template-columns:repeat(2,1fr); gap:12px;
+      width:100%; max-width:340px; margin-top:8px;
+    }
+    .team-btn {
+      background: var(--bg-card);
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 10px;
+      font-family:'Outfit',sans-serif;
+      font-weight:700; font-size:22px;
+      color: var(--text);
+      cursor:pointer;
+      transition: all 0.2s ease;
+      text-align:center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .team-btn span { display:block; font-size:11px; font-weight:500; color:var(--text-dim); margin-top:4px; letter-spacing:0.5px; text-transform:uppercase; }
+    .team-btn:active, .team-btn:hover {
+      background: var(--accent-glow);
+      border-color: var(--accent);
+      transform: scale(0.97);
+    }
+
+    /* ---- WAITING ---- */
+    #waiting-screen { justify-content:center; text-align:center; }
+    .pulse-ring {
+      width:120px; height:120px; border-radius:50%;
+      border: 3px solid var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+      display:flex; align-items:center; justify-content:center;
+      margin-bottom:32px;
+    }
+    .pulse-ring .inner { font-size:42px; }
+    @keyframes pulse {
+      0%,100%{transform:scale(1);opacity:1}
+      50%{transform:scale(1.08);opacity:0.6}
+    }
+    .waiting-text { font-family:'Outfit',sans-serif; font-weight:700; font-size:22px; }
+    .waiting-sub { color:var(--text-dim); margin-top:8px; font-size:14px; }
+
+    /* ---- CHALLENGE ---- */
+    .challenge-header {
+      width:100%; max-width:440px; display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:16px;
+    }
+    .step-badge {
+      font-family:'JetBrains Mono',monospace;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius:999px;
+      padding:6px 14px;
+      font-size:13px; font-weight:500;
+      color: var(--cyan);
+    }
+    .team-badge {
+      font-family:'Outfit',sans-serif;
+      font-size:13px; font-weight:600; color:var(--text-dim);
+    }
+
+    .photo-frame {
+      width:100%; max-width:440px;
+      aspect-ratio:4/3;
+      border-radius:var(--radius);
+      overflow:hidden;
+      border:2px solid var(--border);
+      background:var(--bg-secondary);
+      position:relative;
+      margin-bottom:20px;
+    }
+    .photo-frame img {
+      width:100%; height:100%; object-fit:cover;
+      display:block;
+    }
+    .photo-placeholder {
+      width:100%; height:100%;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      background: linear-gradient(135deg, var(--bg-secondary), #1a1a3e);
+    }
+    .photo-placeholder .letter {
+      font-family:'Outfit',sans-serif; font-weight:900; font-size:72px;
+      background: linear-gradient(135deg, var(--cyan), var(--accent));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    }
+    .photo-placeholder .label {
+      color:var(--text-dim); font-size:13px; margin-top:8px;
+      display:flex; align-items:center; gap:6px;
+    }
+
+    .question-card {
+      width:100%; max-width:440px;
+      background:var(--bg-card);
+      border:1.5px solid var(--border);
+      border-radius:var(--radius);
+      padding:20px;
+      margin-bottom:16px;
+    }
+    .question-label { 
+      font-size:11px; font-weight:600; text-transform:uppercase; 
+      letter-spacing:1px; color:var(--accent); margin-bottom:10px; 
+    }
+    .question-text { font-size:16px; line-height:1.5; }
+    .hint-text { 
+      font-size:13px; color:var(--text-dim); margin-top:12px; 
+      padding-top:12px; border-top:1px solid var(--border);
+      font-style:italic;
+    }
+
+    .answer-area {
+      width:100%; max-width:440px; display:flex; gap:10px;
+    }
+    .answer-input {
+      flex:1;
+      background:var(--bg-secondary);
+      border:1.5px solid var(--border);
+      border-radius:12px;
+      padding:14px 16px;
+      font-family:'JetBrains Mono',monospace;
+      font-size:16px;
+      color:var(--text);
+      outline:none;
+      transition: border-color 0.2s;
+    }
+    .answer-input:focus { border-color:var(--accent); }
+    .answer-input::placeholder { color:var(--text-dim); }
+
+    .submit-btn {
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      border:none;
+      border-radius:12px;
+      padding:14px 24px;
+      font-family:'Outfit',sans-serif;
+      font-weight:700; font-size:15px;
+      color:white;
+      cursor:pointer;
+      transition:all 0.2s;
+      white-space:nowrap;
+    }
+    .submit-btn:active { transform:scale(0.95); }
+    .submit-btn:disabled { opacity:0.5; cursor:not-allowed; }
+
+    /* Feedback */
+    .feedback {
+      width:100%; max-width:440px;
+      margin-top:12px;
+      padding:12px 16px;
+      border-radius:12px;
+      font-size:14px; font-weight:600;
+      text-align:center;
+      animation: fadeIn 0.3s ease;
+      display:none;
+    }
+    .feedback.wrong {
+      display:block;
+      background:rgba(255,107,107,0.12);
+      border:1px solid rgba(255,107,107,0.3);
+      color:var(--red);
+    }
+    .feedback.correct {
+      display:block;
+      background:rgba(0,184,148,0.12);
+      border:1px solid rgba(0,184,148,0.3);
+      color:var(--green);
+    }
+
+    /* ---- PROGRESS BAR (bottom) ---- */
+    .progress-bar-container {
+      width:100%; max-width:440px;
+      margin-top:20px;
+    }
+    .progress-bar-track {
+      width:100%; height:6px;
+      background:var(--bg-card);
+      border-radius:99px;
+      overflow:hidden;
+    }
+    .progress-bar-fill {
+      height:100%;
+      background: linear-gradient(90deg, var(--cyan), var(--accent));
+      border-radius:99px;
+      transition: width 0.6s ease;
+    }
+    .progress-label {
+      display:flex; justify-content:space-between;
+      font-size:11px; color:var(--text-dim); margin-top:6px;
+    }
+
+    /* ---- FINISHED ---- */
+    #finished-screen { justify-content:center; text-align:center; }
+    .trophy { font-size:80px; margin-bottom:24px; animation: bounce 1s ease infinite; }
+    @keyframes bounce { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+    .finish-title { font-family:'Outfit',sans-serif; font-weight:900; font-size:32px; margin-bottom:8px; }
+    .finish-time { 
+      font-family:'JetBrains Mono',monospace; 
+      font-size:28px; font-weight:500; 
+      color:var(--cyan); margin-top:16px;
+    }
+    .finish-sub { color:var(--text-dim); font-size:14px; margin-top:8px; }
+
+    /* ---- CONFETTI ---- */
+    .confetti-piece {
+      position:fixed;
+      width:10px; height:10px;
+      top:-20px;
+      z-index:999;
+      animation: confetti-fall linear forwards;
+    }
+    @keyframes confetti-fall {
+      0% { transform:translateY(0) rotate(0deg); opacity:1; }
+      100% { transform:translateY(110vh) rotate(720deg); opacity:0; }
+    }
+
+    /* ---- BACK BTN ---- */
+    .back-link {
+      color:var(--text-dim); font-size:13px; cursor:pointer;
+      margin-top:20px; text-decoration:underline;
+    }
+
+    /* ---- COUNTDOWN OVERLAY ---- */
+    .countdown-overlay {
+      position:fixed; top:0; left:0; right:0; bottom:0;
+      background:rgba(7,7,15,0.95);
+      display:flex; align-items:center; justify-content:center;
+      z-index:1000;
+      animation: fadeIn 0.3s ease;
+    }
+    .countdown-number {
+      font-family:'Outfit',sans-serif;
+      font-weight:900; font-size:120px;
+      background: linear-gradient(135deg, var(--cyan), var(--accent));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+      animation: countPop 0.8s ease;
+    }
+    @keyframes countPop { 0%{transform:scale(2);opacity:0} 40%{transform:scale(1);opacity:1} 100%{opacity:1} }
+
+    .elapsed-timer {
+      font-family:'JetBrains Mono',monospace;
+      font-size:12px; color:var(--text-dim);
+      margin-top:4px; text-align:center;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============ TEAM SELECT SCREEN ============ -->
+<div id="select-screen" class="screen active">
+  <div class="logo-area">
+    <h1>GIMCANA</h1>
+    <p>Enginyeria de Dades — Colònies 2026</p>
+  </div>
+  <p style="color:var(--text-dim);font-size:14px;margin-bottom:20px;">Selecciona el teu equip:</p>
+  <div class="team-grid" id="team-grid"></div>
+</div>
+
+<!-- ============ WAITING SCREEN ============ -->
+<div id="waiting-screen" class="screen">
+  <div class="pulse-ring"><div class="inner">⏳</div></div>
+  <div class="waiting-text">Esperant inici...</div>
+  <div class="waiting-sub">La gimcana començarà en breus. Prepareu-vos!</div>
+  <div class="back-link" onclick="goBack()">← Canviar d'equip</div>
+</div>
+
+<!-- ============ CHALLENGE SCREEN ============ -->
+<div id="challenge-screen" class="screen">
+  <div class="challenge-header">
+    <span class="team-badge" id="ch-team">Equip —</span>
+    <span class="step-badge" id="ch-step">— / 9</span>
+  </div>
+
+  <div class="photo-frame" id="photo-frame">
+    <!-- Photo or placeholder injected here -->
+  </div>
+
+  <div class="question-card">
+    <div class="question-label">Pregunta</div>
+    <div class="question-text" id="ch-question">—</div>
+    <div class="hint-text" id="ch-hint" style="display:none;"></div>
+  </div>
+
+  <div class="answer-area">
+    <input type="text" class="answer-input" id="answer-input" placeholder="La vostra resposta..." autocomplete="off" autocapitalize="off">
+    <button class="submit-btn" id="submit-btn" onclick="submitAnswer()">Enviar</button>
+  </div>
+
+  <div class="feedback" id="feedback"></div>
+
+  <div class="progress-bar-container">
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+    </div>
+    <div class="progress-label">
+      <span id="progress-text">Prova 1 de 9</span>
+      <span class="elapsed-timer" id="elapsed-timer">00:00</span>
+    </div>
+  </div>
+</div>
+
+<!-- ============ FINISHED SCREEN ============ -->
+<div id="finished-screen" class="screen">
+  <div class="trophy">🏆</div>
+  <div class="finish-title">HEU ACABAT!</div>
+  <p style="color:var(--text-dim);">Felicitats, heu completat totes les proves!</p>
+  <div class="finish-time" id="finish-time">--:--</div>
+  <div class="finish-sub">Temps total</div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  let selectedTeam = null;
+  let teamData = null;
+  let timerInterval = null;
+
+  // --- Generate team buttons ---
+  const grid = document.getElementById('team-grid');
+  for (let i = 1; i <= 10; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'team-btn';
+    btn.innerHTML = `${i}<span>Equip ${i}</span>`;
+    btn.onclick = () => selectTeam(i);
+    grid.appendChild(btn);
+  }
+
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  }
+
+  function goBack() {
+    selectedTeam = null;
+    clearInterval(timerInterval);
+    showScreen('select-screen');
+  }
+
+  async function selectTeam(teamId) {
+    selectedTeam = teamId;
+    await refreshTeamState();
+  }
+
+  async function refreshTeamState() {
+    if (!selectedTeam) return;
+    try {
+      const res = await fetch(`/api/team/${selectedTeam}`);
+      teamData = await res.json();
+      renderState();
+    } catch (e) {
+      console.error('Error fetching state:', e);
+    }
+  }
+
+  function renderState() {
+    if (!teamData) return;
+
+    if (teamData.finished) {
+      showScreen('finished-screen');
+      const elapsed = teamData.finishedAt - teamData.startTime;
+      document.getElementById('finish-time').textContent = formatTime(elapsed);
+      spawnConfetti();
+      return;
+    }
+
+    if (!teamData.started) {
+      showScreen('waiting-screen');
+      return;
+    }
+
+    showScreen('challenge-screen');
+
+    // Header
+    document.getElementById('ch-team').textContent = `Equip ${selectedTeam}`;
+    document.getElementById('ch-step').textContent = `${teamData.currentStep + 1} / 9`;
+
+    // Photo
+    const frame = document.getElementById('photo-frame');
+    if (teamData.photoUrl) {
+      frame.innerHTML = `<img src="${teamData.photoUrl}" alt="Localització" onerror="this.parentElement.innerHTML=makePlaceholder('${teamData.currentChallengeId}')">`;
+    } else {
+      frame.innerHTML = makePlaceholder(teamData.currentChallengeId);
+    }
+
+    // Question
+    document.getElementById('ch-question').textContent = teamData.question || '—';
+    const hintEl = document.getElementById('ch-hint');
+    if (teamData.hint) {
+      hintEl.style.display = 'block';
+      hintEl.textContent = '💡 Pista: ' + teamData.hint;
+    } else {
+      hintEl.style.display = 'none';
+    }
+
+    // Progress
+    const pct = (teamData.currentStep / 9) * 100;
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-text').textContent = `Prova ${teamData.currentStep + 1} de 9`;
+
+    // Clear feedback + input
+    const fb = document.getElementById('feedback');
+    fb.className = 'feedback';
+    fb.style.display = 'none';
+    document.getElementById('answer-input').value = '';
+    document.getElementById('answer-input').focus();
+
+    // Timer
+    startTimer();
+  }
+
+  function makePlaceholder(letter) {
+    return `<div class="photo-placeholder">
+      <div class="letter">${(letter || '?').toUpperCase()}</div>
+      <div class="label">📍 Aneu a la localització de la prova</div>
+    </div>`;
+  }
+
+  function startTimer() {
+    clearInterval(timerInterval);
+    if (!teamData?.startTime) return;
+    const el = document.getElementById('elapsed-timer');
+    timerInterval = setInterval(() => {
+      el.textContent = formatTime(Date.now() - teamData.startTime);
+    }, 1000);
+  }
+
+  function formatTime(ms) {
+    const totalSec = Math.floor(ms / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+
+  async function submitAnswer() {
+    const input = document.getElementById('answer-input');
+    const answer = input.value.trim();
+    if (!answer) return;
+
+    const btn = document.getElementById('submit-btn');
+    btn.disabled = true;
+
+    try {
+      const res = await fetch('/api/answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamId: selectedTeam, answer })
+      });
+      const data = await res.json();
+      const fb = document.getElementById('feedback');
+
+      if (data.correct) {
+        fb.className = 'feedback correct';
+        fb.textContent = data.message;
+        fb.style.display = 'block';
+
+        // Brief celebration then advance
+        setTimeout(() => refreshTeamState(), 1800);
+      } else {
+        fb.className = 'feedback wrong';
+        fb.textContent = data.message;
+        fb.style.display = 'block';
+        input.value = '';
+        input.focus();
+        
+        // Shake animation
+        input.style.animation = 'none';
+        input.offsetHeight; // reflow
+        input.style.animation = 'shake 0.4s ease';
+      }
+    } catch (e) {
+      console.error('Error submitting:', e);
+    }
+    btn.disabled = false;
+  }
+
+  // Enter key submits
+  document.getElementById('answer-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submitAnswer();
+  });
+
+  // Socket events
+  socket.on('game-started', (data) => {
+    if (selectedTeam) {
+      showCountdown().then(() => refreshTeamState());
+    }
+  });
+
+  socket.on('game-reset', () => {
+    if (selectedTeam) {
+      clearInterval(timerInterval);
+      showScreen('waiting-screen');
+    }
+  });
+
+  // Countdown overlay
+  function showCountdown() {
+    return new Promise(resolve => {
+      const overlay = document.createElement('div');
+      overlay.className = 'countdown-overlay';
+      document.body.appendChild(overlay);
+
+      let count = 3;
+      const tick = () => {
+        if (count > 0) {
+          overlay.innerHTML = `<div class="countdown-number">${count}</div>`;
+          count--;
+          setTimeout(tick, 900);
+        } else {
+          overlay.innerHTML = `<div class="countdown-number" style="font-size:60px;">ENDAVANT!</div>`;
+          setTimeout(() => {
+            overlay.remove();
+            resolve();
+          }, 1000);
+        }
+      };
+      tick();
+    });
+  }
+
+  // Confetti
+  function spawnConfetti() {
+    const colors = ['#6c5ce7','#00cec9','#fdcb6e','#ff6b6b','#00b894','#e17055','#a29bfe'];
+    for (let i = 0; i < 60; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.left = Math.random() * 100 + 'vw';
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+      piece.style.width = (6 + Math.random() * 8) + 'px';
+      piece.style.height = (6 + Math.random() * 8) + 'px';
+      piece.style.animationDuration = (2 + Math.random() * 3) + 's';
+      piece.style.animationDelay = Math.random() * 2 + 's';
+      document.body.appendChild(piece);
+      setTimeout(() => piece.remove(), 6000);
+    }
+  }
+
+  // Shake animation
+  const shakeStyle = document.createElement('style');
+  shakeStyle.textContent = `@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}`;
+  document.head.appendChild(shakeStyle);
+</script>
+</body>
+</html>

@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Gimcana</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#07070f; --bg2:#0f1023; --card:rgba(255,255,255,0.04);
+      --accent:#6c5ce7; --cyan:#00cec9; --green:#00b894; --red:#ff6b6b; --amber:#fdcb6e;
+      --text:#f0f0f5; --dim:#8b8ba3; --border:rgba(255,255,255,0.08);
+      --radius:14px;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+    body::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+      background:radial-gradient(ellipse 600px 400px at 20% 10%,rgba(108,92,231,0.1),transparent),
+        radial-gradient(ellipse 500px 500px at 80% 90%,rgba(0,206,201,0.06),transparent);
+      pointer-events:none;z-index:0;}
+
+    .container{max-width:1100px;margin:0 auto;padding:24px 20px;position:relative;z-index:1;}
+
+    /* Auth */
+    #auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;position:relative;z-index:1;}
+    .auth-card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);padding:40px 32px;text-align:center;width:100%;max-width:360px;}
+    .auth-card h2{font-family:'Outfit',sans-serif;font-weight:800;font-size:24px;margin-bottom:20px;}
+    .auth-input{width:100%;background:var(--bg2);border:1.5px solid var(--border);border-radius:10px;padding:12px 16px;
+      font-family:'JetBrains Mono',monospace;font-size:15px;color:var(--text);outline:none;margin-bottom:12px;}
+    .auth-input:focus{border-color:var(--accent);}
+    .auth-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--accent),#8b5cf6);border:none;border-radius:10px;
+      font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;color:white;cursor:pointer;}
+    .auth-error{color:var(--red);font-size:13px;margin-top:10px;display:none;}
+
+    /* Dashboard */
+    #dashboard{display:none;}
+    .dash-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;}
+    .dash-header h1{font-family:'Outfit',sans-serif;font-weight:900;font-size:26px;
+      background:linear-gradient(135deg,var(--cyan),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;}
+    .ctrl-btn{padding:10px 20px;border:1.5px solid var(--border);border-radius:10px;background:var(--card);
+      font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;color:var(--text);cursor:pointer;transition:all .2s;}
+    .ctrl-btn:hover{background:rgba(255,255,255,0.08);}
+    .ctrl-btn.start{border-color:var(--green);color:var(--green);}
+    .ctrl-btn.start:hover{background:rgba(0,184,148,0.15);}
+    .ctrl-btn.reset{border-color:var(--red);color:var(--red);}
+    .ctrl-btn.reset:hover{background:rgba(255,107,107,0.15);}
+
+    .status-bar{display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap;}
+    .status-item{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;flex:1;min-width:140px;}
+    .status-item .label{font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:var(--dim);margin-bottom:4px;}
+    .status-item .value{font-family:'Outfit',sans-serif;font-weight:700;font-size:22px;}
+
+    /* Team Cards */
+    .section-title{font-family:'Outfit',sans-serif;font-weight:700;font-size:18px;margin:28px 0 14px;color:var(--dim);}
+    .teams-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+    .team-card{background:var(--card);border:1.5px solid var(--border);border-radius:var(--radius);padding:16px;transition:border-color .3s;}
+    .team-card.finished{border-color:var(--green);}
+    .team-card .tc-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+    .team-card .tc-name{font-family:'Outfit',sans-serif;font-weight:700;font-size:17px;}
+    .team-card .tc-status{font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;text-transform:uppercase;letter-spacing:0.5px;}
+    .tc-status.active{background:rgba(0,206,201,0.15);color:var(--cyan);}
+    .tc-status.waiting{background:rgba(139,139,163,0.15);color:var(--dim);}
+    .tc-status.done{background:rgba(0,184,148,0.15);color:var(--green);}
+    .tc-progress-track{width:100%;height:5px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden;margin:8px 0;}
+    .tc-progress-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--accent));border-radius:99px;transition:width .6s;}
+    .tc-detail{font-size:12px;color:var(--dim);display:flex;justify-content:space-between;}
+    .tc-path{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--dim);margin-top:6px;word-spacing:2px;}
+    .tc-path .done-letter{color:var(--green);font-weight:700;}
+    .tc-path .current-letter{color:var(--cyan);font-weight:700;text-decoration:underline;}
+
+    /* Challenge Config */
+    .challenges-list{display:flex;flex-direction:column;gap:10px;}
+    .ch-row{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;}
+    .ch-photo-area{width:80px;height:60px;border-radius:8px;overflow:hidden;background:var(--bg2);flex-shrink:0;position:relative;cursor:pointer;border:1.5px dashed var(--border);}
+    .ch-photo-area img{width:100%;height:100%;object-fit:cover;}
+    .ch-photo-area .upload-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--dim);text-align:center;padding:4px;}
+    .ch-photo-area:hover{border-color:var(--accent);}
+    .ch-info{flex:1;min-width:200px;}
+    .ch-info .ch-name{font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;margin-bottom:4px;}
+    .ch-info .ch-q{font-size:13px;color:var(--dim);line-height:1.4;}
+    .ch-info .ch-a{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--cyan);margin-top:4px;}
+    .ch-edit-btn{padding:6px 12px;background:none;border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--dim);cursor:pointer;align-self:center;}
+    .ch-edit-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+    /* Modal */
+    .modal-overlay{position:fixed;inset:0;background:rgba(7,7,15,0.85);z-index:999;display:none;align-items:center;justify-content:center;padding:20px;}
+    .modal-overlay.open{display:flex;}
+    .modal{background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius);padding:28px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;}
+    .modal h3{font-family:'Outfit',sans-serif;font-weight:700;font-size:20px;margin-bottom:16px;}
+    .modal label{display:block;font-size:12px;font-weight:600;color:var(--dim);margin:12px 0 4px;text-transform:uppercase;letter-spacing:0.5px;}
+    .modal input,.modal textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;
+      font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text);outline:none;resize:vertical;}
+    .modal input:focus,.modal textarea:focus{border-color:var(--accent);}
+    .modal textarea{min-height:80px;}
+    .modal-btns{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+    .modal-btns button{padding:10px 20px;border-radius:8px;font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;cursor:pointer;border:none;}
+    .modal-btns .cancel{background:var(--card);color:var(--dim);border:1px solid var(--border);}
+    .modal-btns .save{background:linear-gradient(135deg,var(--accent),#8b5cf6);color:white;}
+
+    .timer-display{font-family:'JetBrains Mono',monospace;color:var(--cyan);}
+
+    /* Responsive */
+    @media(max-width:600px){
+      .teams-grid{grid-template-columns:1fr;}
+      .ch-row{flex-direction:column;}
+    }
+  </style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <h2>🔧 Admin Panel</h2>
+    <input type="password" class="auth-input" id="auth-pass" placeholder="Contrasenya d'admin" onkeydown="if(event.key==='Enter')doAuth()">
+    <button class="auth-btn" onclick="doAuth()">Entrar</button>
+    <div class="auth-error" id="auth-error">Contrasenya incorrecta</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard" class="container">
+  <div class="dash-header">
+    <h1>🎮 Gimcana Admin</h1>
+    <div class="controls">
+      <button class="ctrl-btn start" id="start-btn" onclick="startGame()">▶ Començar</button>
+      <button class="ctrl-btn reset" onclick="resetGame()">↺ Reiniciar</button>
+    </div>
+  </div>
+
+  <div class="status-bar">
+    <div class="status-item"><div class="label">Estat</div><div class="value" id="s-status">—</div></div>
+    <div class="status-item"><div class="label">Temps</div><div class="value timer-display" id="s-timer">00:00</div></div>
+    <div class="status-item"><div class="label">Equips acabats</div><div class="value" id="s-finished">0 / 10</div></div>
+  </div>
+
+  <!-- TEAM CARDS -->
+  <div class="section-title">Equips en temps real</div>
+  <div class="teams-grid" id="teams-grid"></div>
+
+  <!-- CHALLENGE CONFIG -->
+  <div class="section-title">Configuració de proves</div>
+  <p style="font-size:13px;color:var(--dim);margin-bottom:14px;">Clica a la foto per pujar-ne una de nova. Clica "Editar" per canviar la pregunta o la resposta.</p>
+  <div class="challenges-list" id="challenges-list"></div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="edit-modal">
+  <div class="modal">
+    <h3 id="modal-title">Editar prova</h3>
+    <label>Nom de la prova</label>
+    <input type="text" id="m-name">
+    <label>Pregunta</label>
+    <textarea id="m-question"></textarea>
+    <label>Respostes vàlides (separades per comes)</label>
+    <input type="text" id="m-answers" placeholder="resposta1, resposta2">
+    <label>Pista (opcional)</label>
+    <input type="text" id="m-hint">
+    <div class="modal-btns">
+      <button class="cancel" onclick="closeModal()">Cancel·lar</button>
+      <button class="save" onclick="saveChallenge()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- HIDDEN FILE INPUT -->
+<input type="file" id="photo-upload" accept="image/*" style="display:none">
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  let adminState = null;
+  let editingChallenge = null;
+  let uploadingChallenge = null;
+  let timerInterval = null;
+
+  // --- AUTH ---
+  async function doAuth() {
+    const pass = document.getElementById('auth-pass').value;
+    try {
+      const res = await fetch('/api/admin/auth', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ password: pass })
+      });
+      if (res.ok) {
+        document.getElementById('auth-screen').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        loadDashboard();
+      } else {
+        document.getElementById('auth-error').style.display = 'block';
+      }
+    } catch(e) { console.error(e); }
+  }
+
+  // --- LOAD DATA ---
+  async function loadDashboard() {
+    try {
+      const res = await fetch('/api/admin/state');
+      adminState = await res.json();
+      renderDashboard();
+    } catch(e) { console.error(e); }
+  }
+
+  function renderDashboard() {
+    if (!adminState) return;
+    const { gameState: gs, ranking, challenges, teamPaths } = adminState;
+
+    // Status bar
+    document.getElementById('s-status').textContent = gs.started ? '🟢 En curs' : '⏸️ Esperant';
+    document.getElementById('start-btn').disabled = gs.started;
+    document.getElementById('start-btn').style.opacity = gs.started ? '0.4' : '1';
+
+    const finishedCount = ranking.filter(r => r.finished).length;
+    document.getElementById('s-finished').textContent = `${finishedCount} / 10`;
+
+    // Timer
+    clearInterval(timerInterval);
+    if (gs.started) {
+      const updateTimer = () => {
+        const elapsed = Date.now() - gs.startTime;
+        document.getElementById('s-timer').textContent = formatTime(elapsed);
+      };
+      updateTimer();
+      timerInterval = setInterval(updateTimer, 1000);
+    } else {
+      document.getElementById('s-timer').textContent = '00:00';
+    }
+
+    // Team cards
+    const grid = document.getElementById('teams-grid');
+    grid.innerHTML = '';
+    ranking.forEach((r, idx) => {
+      const pct = (r.completedCount / 9 * 100).toFixed(0);
+      const statusClass = r.finished ? 'done' : (gs.started ? 'active' : 'waiting');
+      const statusText = r.finished ? `🏆 #${idx + 1}` : (gs.started ? `Prova ${r.currentChallenge?.toUpperCase() || '—'}` : 'Esperant');
+      const elapsedStr = r.finished ? formatTime(r.finishedAt - gs.startTime) : (gs.started ? formatTime(Date.now() - gs.startTime) : '--:--');
+
+      // Path visualization
+      const pathHtml = r.path.map(letter => {
+        if (r.completedChallenges.includes(letter)) return `<span class="done-letter">${letter.toUpperCase()}</span>`;
+        if (letter === r.currentChallenge) return `<span class="current-letter">${letter.toUpperCase()}</span>`;
+        return letter.toUpperCase();
+      }).join(' → ');
+
+      const card = document.createElement('div');
+      card.className = `team-card${r.finished ? ' finished' : ''}`;
+      card.innerHTML = `
+        <div class="tc-header">
+          <span class="tc-name">Equip ${r.teamId}</span>
+          <span class="tc-status ${statusClass}">${statusText}</span>
+        </div>
+        <div class="tc-progress-track"><div class="tc-progress-fill" style="width:${pct}%"></div></div>
+        <div class="tc-detail">
+          <span>${r.completedCount}/9 proves</span>
+          <span>${elapsedStr}</span>
+        </div>
+        <div class="tc-path">${pathHtml}</div>
+      `;
+      grid.appendChild(card);
+    });
+
+    // Challenge config
+    const list = document.getElementById('challenges-list');
+    list.innerHTML = '';
+    const letters = ['a','b','c','d','e','f','g','h','i'];
+    letters.forEach(id => {
+      const ch = challenges[id];
+      const row = document.createElement('div');
+      row.className = 'ch-row';
+      row.innerHTML = `
+        <div class="ch-photo-area" onclick="triggerUpload('${id}')" title="Clica per pujar foto">
+          <img src="/photos/${id}.jpg" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+          <div class="upload-hint" style="display:none;">📷 Pujar foto</div>
+        </div>
+        <div class="ch-info">
+          <div class="ch-name">${ch.name || 'Prova ' + id.toUpperCase()}</div>
+          <div class="ch-q">${ch.question}</div>
+          <div class="ch-a">✓ ${ch.answers.join(', ')}</div>
+        </div>
+        <button class="ch-edit-btn" onclick="openEditModal('${id}')">Editar</button>
+      `;
+      list.appendChild(row);
+    });
+  }
+
+  // --- GAME CONTROLS ---
+  async function startGame() {
+    if (!confirm('Segur que vols començar la gimcana? Tots els equips rebran la primera localització.')) return;
+    await fetch('/api/admin/start', { method:'POST' });
+    loadDashboard();
+  }
+
+  async function resetGame() {
+    if (!confirm('ATENCIÓ: Això esborrarà tot el progrés. Estàs segur?')) return;
+    if (!confirm('ÚLTIMA CONFIRMACIÓ: Es perdrà tot. Continuar?')) return;
+    await fetch('/api/admin/reset', { method:'POST' });
+    loadDashboard();
+  }
+
+  // --- PHOTO UPLOAD ---
+  function triggerUpload(challengeId) {
+    uploadingChallenge = challengeId;
+    document.getElementById('photo-upload').click();
+  }
+
+  document.getElementById('photo-upload').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file || !uploadingChallenge) return;
+
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    try {
+      const res = await fetch(`/api/admin/photo/${uploadingChallenge}`, { method:'POST', body: formData });
+      if (res.ok) {
+        loadDashboard(); // Refresh to show new photo
+      } else {
+        alert('Error pujant la foto');
+      }
+    } catch(e) { alert('Error de connexió'); }
+
+    e.target.value = ''; // Reset file input
+    uploadingChallenge = null;
+  });
+
+  // --- EDIT MODAL ---
+  function openEditModal(challengeId) {
+    editingChallenge = challengeId;
+    const ch = adminState.challenges[challengeId];
+    document.getElementById('modal-title').textContent = `Editar ${ch.name || 'Prova ' + challengeId.toUpperCase()}`;
+    document.getElementById('m-name').value = ch.name || '';
+    document.getElementById('m-question').value = ch.question || '';
+    document.getElementById('m-answers').value = (ch.answers || []).join(', ');
+    document.getElementById('m-hint').value = ch.hint || '';
+    document.getElementById('edit-modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('edit-modal').classList.remove('open');
+    editingChallenge = null;
+  }
+
+  async function saveChallenge() {
+    if (!editingChallenge) return;
+    const data = {
+      name: document.getElementById('m-name').value.trim(),
+      question: document.getElementById('m-question').value.trim(),
+      answers: document.getElementById('m-answers').value.split(',').map(a => a.trim()).filter(Boolean),
+      hint: document.getElementById('m-hint').value.trim()
+    };
+
+    try {
+      const res = await fetch(`/api/admin/challenge/${editingChallenge}`, {
+        method:'PUT', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+      });
+      if (res.ok) {
+        closeModal();
+        loadDashboard();
+      } else {
+        alert('Error guardant');
+      }
+    } catch(e) { alert('Error de connexió'); }
+  }
+
+  // --- SOCKET UPDATES ---
+  socket.on('state-update', (data) => {
+    if (adminState) {
+      adminState.ranking = data.ranking;
+      adminState.gameState = data.gameState;
+      renderDashboard();
+    }
+  });
+
+  socket.on('game-reset', () => loadDashboard());
+
+  // --- UTILS ---
+  function formatTime(ms) {
+    const totalSec = Math.floor(ms / 1000);
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+</script>
+</body>
+</html>

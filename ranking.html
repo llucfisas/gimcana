@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rànquing — Gimcana</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800;900&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#07070f; --bg2:#0f1023; --card:rgba(255,255,255,0.04);
+      --accent:#6c5ce7; --cyan:#00cec9; --green:#00b894; --red:#ff6b6b; --amber:#fdcb6e;
+      --text:#f0f0f5; --dim:#8b8ba3; --border:rgba(255,255,255,0.08);
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+    body::before{content:'';position:fixed;inset:0;
+      background:radial-gradient(ellipse 800px 500px at 30% 20%,rgba(108,92,231,0.1),transparent),
+        radial-gradient(ellipse 600px 600px at 70% 80%,rgba(0,206,201,0.07),transparent);
+      pointer-events:none;}
+
+    .container{max-width:900px;margin:0 auto;padding:32px 24px;position:relative;z-index:1;}
+
+    .header{text-align:center;margin-bottom:32px;}
+    .header h1{font-family:'Outfit',sans-serif;font-weight:900;font-size:40px;
+      background:linear-gradient(135deg,var(--cyan),var(--accent));-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
+    .header .subtitle{color:var(--dim);font-size:15px;margin-top:6px;}
+    .header .timer{font-family:'JetBrains Mono',monospace;font-size:32px;color:var(--cyan);margin-top:12px;}
+
+    .waiting-msg{text-align:center;margin-top:80px;}
+    .waiting-msg .icon{font-size:64px;margin-bottom:16px;animation:pulse 2s ease-in-out infinite;}
+    .waiting-msg p{font-family:'Outfit',sans-serif;font-size:24px;font-weight:700;}
+    @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05);opacity:0.7}}
+
+    /* Leaderboard */
+    .leaderboard{display:flex;flex-direction:column;gap:8px;}
+
+    .lb-row{
+      display:grid;
+      grid-template-columns:50px 1fr 120px 100px;
+      align-items:center;
+      gap:12px;
+      background:var(--card);
+      border:1.5px solid var(--border);
+      border-radius:14px;
+      padding:16px 20px;
+      transition:all 0.5s ease;
+      animation:slideIn 0.4s ease backwards;
+    }
+    @keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+
+    .lb-row.top1{border-color:var(--amber);background:rgba(253,203,110,0.08);}
+    .lb-row.top2{border-color:#c0c0c0;background:rgba(192,192,192,0.05);}
+    .lb-row.top3{border-color:#cd7f32;background:rgba(205,127,50,0.05);}
+    .lb-row.finished{border-color:var(--green);}
+
+    .lb-pos{
+      font-family:'Outfit',sans-serif;font-weight:900;font-size:26px;text-align:center;
+      min-width:40px;
+    }
+    .lb-pos.p1{color:var(--amber);}
+    .lb-pos.p2{color:#c0c0c0;}
+    .lb-pos.p3{color:#cd7f32;}
+
+    .lb-info{display:flex;flex-direction:column;gap:4px;}
+    .lb-name{font-family:'Outfit',sans-serif;font-weight:700;font-size:18px;}
+    .lb-progress-track{width:100%;max-width:260px;height:6px;background:rgba(255,255,255,0.06);border-radius:99px;overflow:hidden;}
+    .lb-progress-fill{height:100%;border-radius:99px;transition:width 0.8s ease;}
+    .lb-progress-fill.active{background:linear-gradient(90deg,var(--cyan),var(--accent));}
+    .lb-progress-fill.done{background:var(--green);}
+
+    .lb-challenges{font-family:'JetBrains Mono',monospace;font-size:13px;color:var(--dim);text-align:center;}
+    .lb-time{font-family:'JetBrains Mono',monospace;font-size:16px;text-align:right;}
+    .lb-time.finished-time{color:var(--green);font-weight:500;}
+
+    .lb-challenge-label{font-size:11px;color:var(--dim);text-align:center;margin-top:2px;}
+
+    /* Medal emojis */
+    .medal{font-size:28px;margin-right:4px;}
+
+    /* All finished */
+    .final-banner{
+      text-align:center;margin-top:40px;padding:32px;
+      background:var(--card);border:1.5px solid var(--green);border-radius:14px;
+      animation:fadeIn 0.6s ease;
+    }
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    .final-banner .trophy{font-size:60px;margin-bottom:12px;}
+    .final-banner h2{font-family:'Outfit',sans-serif;font-weight:800;font-size:28px;color:var(--green);}
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>🏆 RÀNQUING EN DIRECTE</h1>
+    <div class="subtitle">Gimcana — Enginyeria de Dades 2026</div>
+    <div class="timer" id="timer">00:00</div>
+  </div>
+
+  <div class="waiting-msg" id="waiting-msg">
+    <div class="icon">⏳</div>
+    <p>Esperant que comenci la gimcana...</p>
+  </div>
+
+  <div class="leaderboard" id="leaderboard" style="display:none;"></div>
+  <div id="final-banner-area"></div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+  const socket = io();
+  let currentState = null;
+  let timerInterval = null;
+  let startTime = null;
+
+  function formatTime(ms) {
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+    return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+
+  function render(data) {
+    const { ranking, gameState: gs } = data;
+    currentState = data;
+
+    if (!gs.started) {
+      document.getElementById('waiting-msg').style.display = '';
+      document.getElementById('leaderboard').style.display = 'none';
+      document.getElementById('timer').textContent = '00:00';
+      clearInterval(timerInterval);
+      return;
+    }
+
+    startTime = gs.startTime;
+    document.getElementById('waiting-msg').style.display = 'none';
+    document.getElementById('leaderboard').style.display = 'flex';
+
+    // Timer
+    clearInterval(timerInterval);
+    const updateTimer = () => {
+      document.getElementById('timer').textContent = formatTime(Date.now() - startTime);
+    };
+    updateTimer();
+    timerInterval = setInterval(updateTimer, 1000);
+
+    // Leaderboard
+    const lb = document.getElementById('leaderboard');
+    lb.innerHTML = '';
+
+    ranking.forEach((r, idx) => {
+      const pos = idx + 1;
+      const pct = (r.completedCount / 9 * 100).toFixed(0);
+      const timeStr = r.finished
+        ? formatTime(r.finishedAt - gs.startTime)
+        : `${r.completedCount}/9`;
+
+      const row = document.createElement('div');
+      let rowClass = 'lb-row';
+      if (r.finished) {
+        rowClass += ' finished';
+        if (pos === 1) rowClass += ' top1';
+        else if (pos === 2) rowClass += ' top2';
+        else if (pos === 3) rowClass += ' top3';
+      }
+      row.className = rowClass;
+      row.style.animationDelay = `${idx * 0.05}s`;
+
+      const medals = { 1:'🥇', 2:'🥈', 3:'🥉' };
+      const posClass = pos <= 3 && r.finished ? ` p${pos}` : '';
+      const medal = (r.finished && medals[pos]) ? `<span class="medal">${medals[pos]}</span>` : '';
+
+      const currentCh = r.currentChallenge ? r.currentChallenge.toUpperCase() : '✓';
+
+      row.innerHTML = `
+        <div class="lb-pos${posClass}">${medal}${pos}</div>
+        <div class="lb-info">
+          <div class="lb-name">Equip ${r.teamId}</div>
+          <div class="lb-progress-track">
+            <div class="lb-progress-fill ${r.finished ? 'done' : 'active'}" style="width:${pct}%"></div>
+          </div>
+        </div>
+        <div>
+          <div class="lb-challenges">${r.finished ? '✅ Completat' : `Prova ${currentCh}`}</div>
+          <div class="lb-challenge-label">${r.completedCount} de 9</div>
+        </div>
+        <div class="lb-time ${r.finished ? 'finished-time' : ''}">${timeStr}</div>
+      `;
+      lb.appendChild(row);
+    });
+
+    // Final banner
+    const allFinished = ranking.every(r => r.finished);
+    const bannerArea = document.getElementById('final-banner-area');
+    if (allFinished) {
+      bannerArea.innerHTML = `
+        <div class="final-banner">
+          <div class="trophy">🏆</div>
+          <h2>TOTS ELS EQUIPS HAN ACABAT!</h2>
+        </div>`;
+    } else {
+      bannerArea.innerHTML = '';
+    }
+  }
+
+  // Socket events
+  socket.on('state-update', render);
+  socket.on('game-started', () => {
+    // Will receive state-update right after
+  });
+  socket.on('game-reset', () => {
+    clearInterval(timerInterval);
+    document.getElementById('timer').textContent = '00:00';
+    document.getElementById('waiting-msg').style.display = '';
+    document.getElementById('leaderboard').style.display = 'none';
+    document.getElementById('final-banner-area').innerHTML = '';
+  });
+
+  // Initial load
+  fetch('/api/ranking').then(r => r.json()).then(data => {
+    render({ ranking: data.ranking, gameState: { started: data.started, startTime: data.startTime } });
+  });
+</script>
+</body>
+</html>
