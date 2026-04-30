@@ -157,14 +157,14 @@ function saveState() {
 }
 
 function loadConfig() {
+  // Always start from code-defined challenges to avoid stale config.json
+  const fresh = JSON.parse(JSON.stringify(DEFAULT_CHALLENGES));
   try {
-    if (fs.existsSync(CONFIG_FILE)) {
-      return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-    }
+    fs.writeFileSync(CONFIG_FILE, JSON.stringify(fresh, null, 2));
   } catch (e) {
-    console.error('Error loading config:', e);
+    console.error('Error writing config:', e);
   }
-  return JSON.parse(JSON.stringify(DEFAULT_CHALLENGES));
+  return fresh;
 }
 
 function saveConfig() {
@@ -220,6 +220,14 @@ function getRanking() {
 // ============================================================
 app.use(express.json());
 app.use(express.static('public'));
+
+// Prevent browser caching on API routes
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
 
 // Photo upload config
 const storage = multer.diskStorage({
