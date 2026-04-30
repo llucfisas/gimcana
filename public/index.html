@@ -262,6 +262,18 @@
       border:1px solid rgba(0,184,148,0.3);
       color:var(--green);
     }
+    .feedback.cooldown {
+      display:block;
+      background:rgba(253,203,110,0.1);
+      border:1px solid rgba(253,203,110,0.3);
+      color:var(--amber);
+    }
+    .cooldown-timer {
+      font-family:'JetBrains Mono',monospace;
+      font-size:28px; font-weight:700;
+      color:var(--amber);
+      margin-top:4px;
+    }
 
     /* ---- PROGRESS BAR (bottom) ---- */
     .progress-bar-container {
@@ -509,6 +521,7 @@
   let selectedTeam = null;
   let teamData = null;
   let timerInterval = null;
+  let cooldownInterval = null;
 
   // --- Generate team buttons ---
   const grid = document.getElementById('team-grid');
@@ -623,7 +636,17 @@
     fb.className = 'feedback';
     fb.style.display = 'none';
     document.getElementById('answer-input').value = '';
-    document.getElementById('answer-input').focus();
+
+    // Check if cooldown is active
+    clearInterval(cooldownInterval);
+    const COOLDOWN_MS = 60 * 1000;
+    if (teamData.lastWrongAt && (Date.now() - teamData.lastWrongAt) < COOLDOWN_MS) {
+      startCooldownUI(teamData.lastWrongAt);
+    } else {
+      document.getElementById('answer-input').disabled = false;
+      document.getElementById('submit-btn').disabled = false;
+      document.getElementById('answer-input').focus();
+    }
 
     // Timer
     startTimer();
@@ -673,25 +696,62 @@
         fb.className = 'feedback correct';
         fb.textContent = data.message;
         fb.style.display = 'block';
-
-        // Brief celebration then advance
+        clearInterval(cooldownInterval);
         setTimeout(() => refreshTeamState(), 1800);
+      } else if (data.cooldown) {
+        input.value = '';
+        // Shake
+        input.style.animation = 'none';
+        input.offsetHeight;
+        input.style.animation = 'shake 0.4s ease';
+        // Start cooldown from now
+        startCooldownUI(Date.now());
       } else {
         fb.className = 'feedback wrong';
         fb.textContent = data.message;
         fb.style.display = 'block';
         input.value = '';
         input.focus();
-        
-        // Shake animation
-        input.style.animation = 'none';
-        input.offsetHeight; // reflow
-        input.style.animation = 'shake 0.4s ease';
       }
     } catch (e) {
       console.error('Error submitting:', e);
+      btn.disabled = false;
     }
-    btn.disabled = false;
+  }
+
+  function startCooldownUI(wrongTimestamp) {
+    const COOLDOWN_MS = 60 * 1000;
+    const input = document.getElementById('answer-input');
+    const btn = document.getElementById('submit-btn');
+    const fb = document.getElementById('feedback');
+
+    input.disabled = true;
+    btn.disabled = true;
+
+    clearInterval(cooldownInterval);
+
+    const tick = () => {
+      const elapsed = Date.now() - wrongTimestamp;
+      const remaining = Math.max(0, Math.ceil((COOLDOWN_MS - elapsed) / 1000));
+
+      if (remaining <= 0) {
+        clearInterval(cooldownInterval);
+        fb.className = 'feedback';
+        fb.style.display = 'none';
+        input.disabled = false;
+        btn.disabled = false;
+        input.value = '';
+        input.focus();
+        return;
+      }
+
+      fb.className = 'feedback cooldown';
+      fb.innerHTML = `❌ Resposta incorrecta<div class="cooldown-timer">⏳ ${remaining}s</div>`;
+      fb.style.display = 'block';
+    };
+
+    tick();
+    cooldownInterval = setInterval(tick, 1000);
   }
 
   // Enter key submits
