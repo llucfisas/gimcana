@@ -660,7 +660,7 @@
 
     // Check if cooldown is active
     clearInterval(cooldownInterval);
-    const COOLDOWN_MS = 60 * 1000;
+    const COOLDOWN_MS = 30 * 1000;
     if (teamData.lastWrongAt && (Date.now() - teamData.lastWrongAt) < COOLDOWN_MS) {
       startCooldownUI(teamData.lastWrongAt);
     } else {
@@ -741,7 +741,7 @@
   }
 
   function startCooldownUI(wrongTimestamp) {
-    const COOLDOWN_MS = 60 * 1000;
+    const COOLDOWN_MS = 30 * 1000;
     const input = document.getElementById('answer-input');
     const btn = document.getElementById('submit-btn');
     const fb = document.getElementById('feedback');
