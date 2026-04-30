@@ -122,7 +122,8 @@ function createFreshState() {
       completedChallenges: [],
       completionTimes: [],
       finishedAt: null,
-      wrongAttempts: 0
+      wrongAttempts: 0,
+      lastWrongAt: null
     };
   }
   return { started: false, startTime: null, teams };
@@ -277,7 +278,8 @@ app.get('/api/team/:teamId', (req, res) => {
     finishedAt: team.finishedAt,
     completedChallenges: team.completedChallenges,
     path: teamPath,
-    wrongAttempts: team.wrongAttempts
+    wrongAttempts: team.wrongAttempts,
+    lastWrongAt: team.lastWrongAt
   });
 });
 
@@ -288,6 +290,13 @@ app.post('/api/answer', (req, res) => {
 
   const team = gameState.teams[teamId];
   if (team.finishedAt) return res.json({ correct: true, finished: true, message: 'Ja heu acabat!' });
+
+  // Cooldown check (60 seconds after wrong answer)
+  const COOLDOWN_MS = 60 * 1000;
+  if (team.lastWrongAt && (Date.now() - team.lastWrongAt) < COOLDOWN_MS) {
+    const remaining = Math.ceil((COOLDOWN_MS - (Date.now() - team.lastWrongAt)) / 1000);
+    return res.json({ correct: false, cooldown: true, remainingSeconds: remaining, message: `Heu d'esperar ${remaining}s abans de tornar a intentar-ho.` });
+  }
 
   const teamPath = TEAM_PATHS[teamId];
   const currentChallengeId = teamPath[team.currentStep];
@@ -300,6 +309,7 @@ app.post('/api/answer', (req, res) => {
     team.completedChallenges.push(currentChallengeId);
     team.completionTimes.push(Date.now());
     team.currentStep++;
+    team.lastWrongAt = null;
 
     if (team.currentStep >= 9) {
       team.finishedAt = Date.now();
@@ -333,10 +343,13 @@ app.post('/api/answer', (req, res) => {
     });
   } else {
     team.wrongAttempts++;
+    team.lastWrongAt = Date.now();
     saveState();
     return res.json({
       correct: false,
-      message: 'Resposta incorrecta. Torneu-ho a intentar!'
+      cooldown: true,
+      remainingSeconds: 60,
+      message: 'Resposta incorrecta! Heu d\'esperar 1 minut.'
     });
   }
 });
