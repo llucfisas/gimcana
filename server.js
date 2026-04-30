@@ -306,8 +306,8 @@ app.post('/api/answer', (req, res) => {
   const team = gameState.teams[teamId];
   if (team.finishedAt) return res.json({ correct: true, finished: true, message: 'Ja heu acabat!' });
 
-  // Cooldown check (60 seconds after wrong answer)
-  const COOLDOWN_MS = 60 * 1000;
+  // Cooldown check (30 seconds after wrong answer)
+  const COOLDOWN_MS = 30 * 1000;
   if (team.lastWrongAt && (Date.now() - team.lastWrongAt) < COOLDOWN_MS) {
     const remaining = Math.ceil((COOLDOWN_MS - (Date.now() - team.lastWrongAt)) / 1000);
     return res.json({ correct: false, cooldown: true, remainingSeconds: remaining, message: `Heu d'esperar ${remaining}s abans de tornar a intentar-ho.` });
@@ -363,8 +363,8 @@ app.post('/api/answer', (req, res) => {
     return res.json({
       correct: false,
       cooldown: true,
-      remainingSeconds: 60,
-      message: 'Resposta incorrecta! Heu d\'esperar 1 minut.'
+      remainingSeconds: 30,
+      message: 'Resposta incorrecta! Heu d\'esperar 30 segons.'
     });
   }
 });
