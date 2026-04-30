@@ -197,7 +197,7 @@
   // --- LOAD DATA ---
   async function loadDashboard() {
     try {
-      const res = await fetch('/api/admin/state');
+      const res = await fetch('/api/admin/state', { cache: 'no-store' });
       adminState = await res.json();
       renderDashboard();
     } catch(e) { console.error(e); }
