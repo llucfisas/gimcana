@@ -205,7 +205,7 @@
 
   function renderDashboard() {
     if (!adminState) return;
-    const { gameState: gs, ranking, challenges, teamPaths } = adminState;
+    const { gameState: gs, ranking, challenges, teamPaths, teamNames } = adminState;
 
     // Status bar
     document.getElementById('s-status').textContent = gs.started ? '🟢 En curs' : '⏸️ Esperant';
@@ -248,7 +248,7 @@
       card.className = `team-card${r.finished ? ' finished' : ''}`;
       card.innerHTML = `
         <div class="tc-header">
-          <span class="tc-name">Equip ${r.teamId}</span>
+          <span class="tc-name">${escHtml(r.teamName || 'Equip ' + r.teamId)}</span>
           <span class="tc-status ${statusClass}">${statusText}</span>
         </div>
         <div class="tc-progress-track"><div class="tc-progress-fill" style="width:${pct}%"></div></div>
@@ -382,6 +382,12 @@
     const m = Math.floor(totalSec / 60);
     const s = totalSec % 60;
     return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  }
+
+  function escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
   }
 </script>
 </body>
