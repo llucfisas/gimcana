@@ -529,7 +529,7 @@
   // --- Fetch team names and generate buttons ---
   async function initTeamGrid() {
     try {
-      const res = await fetch('/api/teams');
+      const res = await fetch('/api/teams', { cache: 'no-store' });
       const data = await res.json();
       teamNames = data.teams;
     } catch(e) {
@@ -609,7 +609,7 @@
   async function refreshTeamState() {
     if (!selectedTeam) return;
     try {
-      const res = await fetch(`/api/team/${selectedTeam}`);
+      const res = await fetch(`/api/team/${selectedTeam}`, { cache: 'no-store' });
       teamData = await res.json();
       renderState();
     } catch (e) {
@@ -708,30 +708,35 @@
       const res = await fetch('/api/answer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ teamId: selectedTeam, answer })
+        body: JSON.stringify({ teamId: selectedTeam, answer }),
+        cache: 'no-store'
       });
       const data = await res.json();
       const fb = document.getElementById('feedback');
 
       if (data.correct) {
+        // Clear any active cooldown
+        clearInterval(cooldownInterval);
+        input.disabled = false;
+        btn.disabled = false;
+
         fb.className = 'feedback correct';
         fb.textContent = data.message;
         fb.style.display = 'block';
-        clearInterval(cooldownInterval);
+
         setTimeout(() => refreshTeamState(), 1800);
       } else if (data.cooldown) {
         input.value = '';
-        // Shake
         input.style.animation = 'none';
         input.offsetHeight;
         input.style.animation = 'shake 0.4s ease';
-        // Start cooldown from now
         startCooldownUI(Date.now());
       } else {
         fb.className = 'feedback wrong';
-        fb.textContent = data.message;
+        fb.textContent = data.message || 'Resposta incorrecta';
         fb.style.display = 'block';
         input.value = '';
+        btn.disabled = false;
         input.focus();
       }
     } catch (e) {
@@ -859,7 +864,7 @@
 
   async function fetchRanking() {
     try {
-      const res = await fetch('/api/ranking');
+      const res = await fetch('/api/ranking', { cache: 'no-store' });
       rankingData = await res.json();
       renderRanking();
     } catch(e) { console.error(e); }
