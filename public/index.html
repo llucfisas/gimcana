@@ -76,16 +76,18 @@
       background: var(--bg-card);
       border: 1.5px solid var(--border);
       border-radius: var(--radius);
-      padding: 20px 10px;
+      padding: 16px 10px;
       font-family:'Outfit',sans-serif;
-      font-weight:700; font-size:22px;
+      font-weight:700; font-size:15px;
       color: var(--text);
       cursor:pointer;
       transition: all 0.2s ease;
       text-align:center;
       -webkit-tap-highlight-color: transparent;
+      word-break: break-word;
+      line-height:1.3;
     }
-    .team-btn span { display:block; font-size:11px; font-weight:500; color:var(--text-dim); margin-top:4px; letter-spacing:0.5px; text-transform:uppercase; }
+    .team-btn span { display:block; font-size:11px; font-weight:500; color:var(--text-dim); margin-top:6px; letter-spacing:0.5px; text-transform:uppercase; }
     .team-btn:active, .team-btn:hover {
       background: var(--accent-glow);
       border-color: var(--accent);
@@ -522,15 +524,34 @@
   let teamData = null;
   let timerInterval = null;
   let cooldownInterval = null;
+  let teamNames = {};
 
-  // --- Generate team buttons ---
-  const grid = document.getElementById('team-grid');
-  for (let i = 1; i <= 10; i++) {
-    const btn = document.createElement('button');
-    btn.className = 'team-btn';
-    btn.innerHTML = `${i}<span>Equip ${i}</span>`;
-    btn.onclick = () => promptPassword(i);
-    grid.appendChild(btn);
+  // --- Fetch team names and generate buttons ---
+  async function initTeamGrid() {
+    try {
+      const res = await fetch('/api/teams');
+      const data = await res.json();
+      teamNames = data.teams;
+    } catch(e) {
+      // Fallback
+      for (let i = 1; i <= 10; i++) teamNames[i] = `Equip ${i}`;
+    }
+    const grid = document.getElementById('team-grid');
+    grid.innerHTML = '';
+    for (let i = 1; i <= 10; i++) {
+      const btn = document.createElement('button');
+      btn.className = 'team-btn';
+      btn.innerHTML = `${escHtml(teamNames[i])}<span>Equip ${i}</span>`;
+      btn.onclick = () => promptPassword(i);
+      grid.appendChild(btn);
+    }
+  }
+  initTeamGrid();
+
+  function escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
   }
 
   function showScreen(id) {
@@ -549,7 +570,7 @@
 
   function promptPassword(teamId) {
     pendingTeam = teamId;
-    document.getElementById('pw-team-num').textContent = `Equip ${teamId}`;
+    document.getElementById('pw-team-num').textContent = teamNames[teamId] || `Equip ${teamId}`;
     document.getElementById('pw-input').value = '';
     document.getElementById('pw-error').style.display = 'none';
     showScreen('password-screen');
@@ -615,7 +636,7 @@
     showScreen('challenge-screen');
 
     // Header
-    document.getElementById('ch-team').textContent = `Equip ${selectedTeam}`;
+    document.getElementById('ch-team').textContent = teamNames[selectedTeam] || `Equip ${selectedTeam}`;
     document.getElementById('ch-step').textContent = `${teamData.currentStep + 1} / 9`;
 
     // Photo
@@ -867,6 +888,7 @@
       const pct = (r.completedCount / 9 * 100).toFixed(0);
       const isMe = r.teamId === selectedTeam;
       const medals = {1:'🥇',2:'🥈',3:'🥉'};
+      const displayName = r.teamName || teamNames[r.teamId] || `Equip ${r.teamId}`;
 
       let rowClass = 'ro-row';
       if (isMe) rowClass += ' is-me';
@@ -881,7 +903,7 @@
       row.innerHTML = `
         <div class="ro-pos${posClass}">${medal}${pos}</div>
         <div>
-          <div class="ro-info-name">Equip ${r.teamId}${isMe ? ' (tu)' : ''}</div>
+          <div class="ro-info-name">${escHtml(displayName)}${isMe ? ' (tu)' : ''}</div>
           <div class="ro-info-progress">
             <div class="ro-prog-track"><div class="ro-prog-fill${r.finished?' done':''}" style="width:${pct}%"></div></div>
             <span class="ro-prog-label">${r.completedCount}/9</span>
