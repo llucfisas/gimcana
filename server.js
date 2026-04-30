@@ -20,6 +20,14 @@ const TEAM_PASSWORDS = {
 };
 
 // ============================================================
+//  🏷️ NOMS DELS EQUIPS
+// ============================================================
+const TEAM_NAMES = {
+  1: 'Deboraste', 2: 'Maduritos', 3: 'Ibai Calavera', 4: 'Xungus', 5: 'Rufián Quiller',
+  6: 'C. Kirk', 7: 'Perro Sanxe', 8: 'Mac Mec Mic', 9: 'Sneaky Golem', 10: 'Lopes <3 Flams'
+};
+
+// ============================================================
 //  📋 CONFIGURACIÓ DE PROVES
 //  ⚠️ L'enunciat (question) NO es mostra als participants,
 //     només serveix de referència per l'admin.
@@ -180,6 +188,7 @@ function getRanking() {
     const path = TEAM_PATHS[i];
     ranking.push({
       teamId: i,
+      teamName: TEAM_NAMES[i],
       completedCount: team.completedChallenges.length,
       totalChallenges: 9,
       currentChallenge: team.currentStep < 9 ? path[team.currentStep] : null,
@@ -269,6 +278,7 @@ app.get('/api/team/:teamId', (req, res) => {
     started: gameState.started,
     startTime: gameState.startTime,
     teamId,
+    teamName: TEAM_NAMES[teamId],
     currentStep: team.currentStep,
     totalSteps: 9,
     currentChallengeId,
@@ -281,6 +291,11 @@ app.get('/api/team/:teamId', (req, res) => {
     wrongAttempts: team.wrongAttempts,
     lastWrongAt: team.lastWrongAt
   });
+});
+
+// Get all team names
+app.get('/api/teams', (req, res) => {
+  res.json({ teams: TEAM_NAMES });
 });
 
 // Submit answer
@@ -374,7 +389,8 @@ app.get('/api/admin/state', (req, res) => {
     gameState: { started: gameState.started, startTime: gameState.startTime },
     ranking: getRanking(),
     challenges,
-    teamPaths: TEAM_PATHS
+    teamPaths: TEAM_PATHS,
+    teamNames: TEAM_NAMES
   });
 });
 
