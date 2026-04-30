@@ -15,8 +15,8 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'gimcana2026';
 //  🔑 CONTRASENYES PER EQUIP
 // ============================================================
 const TEAM_PASSWORDS = {
-  1: 'acampdades', 2: 'acampdades', 3: 'acampdades', 4: 'acampdades', 5: 'acampdades',
-  6: 'acampdades', 7: 'acampdades', 8: 'acampdades', 9: 'acampdades', 10: 'acampdades'
+  1: '496', 2: '589', 3: '550', 4: '560', 5: '544',
+  6: '605', 7: '529', 8: '494', 9: '566', 10: '594'
 };
 
 // ============================================================
@@ -41,7 +41,7 @@ const DEFAULT_CHALLENGES = {
   c: {
     name: 'Prova C — Matrius',
     question: 'Calcular -det de la matriu 2x2 [[13,10],[5,9]] i det de la 3x3 [[6,3,2],[4,5,1],[1,2,4]]',
-    answers: ['-67 69', '-67, 69', '-67,69', '-67 i 69', '-67-69'],
+    answers: ['67 69', '67, 69', '67,69', '67 i 69', '67-69'],
     hint: ''
   },
   d: {
@@ -59,7 +59,7 @@ const DEFAULT_CHALLENGES = {
   f: {
     name: 'Prova F — Xarxes',
     question: 'Quantes adreces IP tens amb una màscara /26?',
-    answers: ['64', '62'],
+    answers: ['62'],
     hint: ''
   },
   g: {
