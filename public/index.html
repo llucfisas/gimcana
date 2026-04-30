@@ -92,6 +92,40 @@
       transform: scale(0.97);
     }
 
+    /* ---- PASSWORD SCREEN ---- */
+    #password-screen { justify-content:center; text-align:center; }
+    .pw-card {
+      background:var(--bg-card); border:1.5px solid var(--border);
+      border-radius:var(--radius); padding:32px 24px;
+      width:100%; max-width:340px;
+    }
+    .pw-card .pw-team-num {
+      font-family:'Outfit',sans-serif; font-weight:900; font-size:48px;
+      background:linear-gradient(135deg, var(--cyan), var(--accent));
+      -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+    }
+    .pw-card .pw-label {
+      font-size:13px; color:var(--text-dim); margin:12px 0 16px;
+    }
+    .pw-input {
+      width:100%; background:var(--bg-secondary);
+      border:1.5px solid var(--border); border-radius:12px;
+      padding:14px 16px; font-family:'DM Sans',sans-serif;
+      font-size:16px; color:var(--text); outline:none;
+      text-align:center; margin-bottom:12px;
+    }
+    .pw-input:focus { border-color:var(--accent); }
+    .pw-input::placeholder { color:var(--text-dim); }
+    .pw-submit {
+      width:100%; padding:14px;
+      background:linear-gradient(135deg, var(--accent), #8b5cf6);
+      border:none; border-radius:12px;
+      font-family:'Outfit',sans-serif; font-weight:700; font-size:15px;
+      color:white; cursor:pointer;
+    }
+    .pw-submit:active { transform:scale(0.97); }
+    .pw-error { color:var(--red); font-size:13px; margin-top:10px; display:none; }
+
     /* ---- WAITING ---- */
     #waiting-screen { justify-content:center; text-align:center; }
     .pulse-ring {
@@ -162,19 +196,15 @@
       background:var(--bg-card);
       border:1.5px solid var(--border);
       border-radius:var(--radius);
-      padding:20px;
+      padding:16px 20px;
       margin-bottom:16px;
+      text-align:center;
     }
     .question-label { 
       font-size:11px; font-weight:600; text-transform:uppercase; 
-      letter-spacing:1px; color:var(--accent); margin-bottom:10px; 
+      letter-spacing:1px; color:var(--accent); margin-bottom:8px; 
     }
-    .question-text { font-size:16px; line-height:1.5; }
-    .hint-text { 
-      font-size:13px; color:var(--text-dim); margin-top:12px; 
-      padding-top:12px; border-top:1px solid var(--border);
-      font-style:italic;
-    }
+    .question-text { font-size:15px; line-height:1.5; color:var(--text-dim); }
 
     .answer-area {
       width:100%; max-width:440px; display:flex; gap:10px;
@@ -395,6 +425,18 @@
   <div class="team-grid" id="team-grid"></div>
 </div>
 
+<!-- ============ PASSWORD SCREEN ============ -->
+<div id="password-screen" class="screen">
+  <div class="pw-card">
+    <div class="pw-team-num" id="pw-team-num">—</div>
+    <div class="pw-label">Introdueix la contrasenya del teu equip:</div>
+    <input type="password" class="pw-input" id="pw-input" placeholder="Contrasenya..." autocomplete="off" onkeydown="if(event.key==='Enter')doTeamAuth()">
+    <button class="pw-submit" onclick="doTeamAuth()">Entrar</button>
+    <div class="pw-error" id="pw-error">Contrasenya incorrecta</div>
+  </div>
+  <div class="back-link" onclick="goBack()">← Canviar d'equip</div>
+</div>
+
 <!-- ============ WAITING SCREEN ============ -->
 <div id="waiting-screen" class="screen">
   <div class="pulse-ring"><div class="inner">⏳</div></div>
@@ -415,9 +457,8 @@
   </div>
 
   <div class="question-card">
-    <div class="question-label">Pregunta</div>
-    <div class="question-text" id="ch-question">—</div>
-    <div class="hint-text" id="ch-hint" style="display:none;"></div>
+    <div class="question-label">📍 Localització</div>
+    <div class="question-text">Aneu al lloc de la foto. Allà trobareu l'enunciat de la prova.</div>
   </div>
 
   <div class="answer-area">
@@ -475,7 +516,7 @@
     const btn = document.createElement('button');
     btn.className = 'team-btn';
     btn.innerHTML = `${i}<span>Equip ${i}</span>`;
-    btn.onclick = () => selectTeam(i);
+    btn.onclick = () => promptPassword(i);
     grid.appendChild(btn);
   }
 
@@ -488,6 +529,42 @@
     selectedTeam = null;
     clearInterval(timerInterval);
     showScreen('select-screen');
+  }
+
+  // --- Password flow ---
+  let pendingTeam = null;
+
+  function promptPassword(teamId) {
+    pendingTeam = teamId;
+    document.getElementById('pw-team-num').textContent = `Equip ${teamId}`;
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-error').style.display = 'none';
+    showScreen('password-screen');
+    setTimeout(() => document.getElementById('pw-input').focus(), 300);
+  }
+
+  async function doTeamAuth() {
+    const password = document.getElementById('pw-input').value.trim();
+    if (!password) return;
+
+    try {
+      const res = await fetch('/api/team/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ teamId: pendingTeam, password })
+      });
+      if (res.ok) {
+        selectedTeam = pendingTeam;
+        pendingTeam = null;
+        await refreshTeamState();
+      } else {
+        document.getElementById('pw-error').style.display = 'block';
+        document.getElementById('pw-input').value = '';
+        document.getElementById('pw-input').focus();
+      }
+    } catch(e) {
+      console.error('Auth error:', e);
+    }
   }
 
   async function selectTeam(teamId) {
@@ -534,16 +611,6 @@
       frame.innerHTML = `<img src="${teamData.photoUrl}" alt="Localització" onerror="this.parentElement.innerHTML=makePlaceholder('${teamData.currentChallengeId}')">`;
     } else {
       frame.innerHTML = makePlaceholder(teamData.currentChallengeId);
-    }
-
-    // Question
-    document.getElementById('ch-question').textContent = teamData.question || '—';
-    const hintEl = document.getElementById('ch-hint');
-    if (teamData.hint) {
-      hintEl.style.display = 'block';
-      hintEl.textContent = '💡 Pista: ' + teamData.hint;
-    } else {
-      hintEl.style.display = 'none';
     }
 
     // Progress
