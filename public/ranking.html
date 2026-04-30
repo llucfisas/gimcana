@@ -123,6 +123,12 @@
     return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
   }
 
+  function escHtml(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+
   function render(data) {
     const { ranking, gameState: gs } = data;
     currentState = data;
@@ -178,7 +184,7 @@
       row.innerHTML = `
         <div class="lb-pos${posClass}">${medal}${pos}</div>
         <div class="lb-info">
-          <div class="lb-name">Equip ${r.teamId}</div>
+          <div class="lb-name">${escHtml(r.teamName || 'Equip ' + r.teamId)}</div>
           <div class="lb-progress-track">
             <div class="lb-progress-fill ${r.finished ? 'done' : 'active'}" style="width:${pct}%"></div>
           </div>
