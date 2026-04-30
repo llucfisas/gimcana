@@ -12,62 +12,73 @@ const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'gimcana2026';
 
 // ============================================================
-//  📋 CONFIGURACIÓ DE PROVES — EDITA AQUÍ LES PREGUNTES
+//  🔑 CONTRASENYES PER EQUIP
+// ============================================================
+const TEAM_PASSWORDS = {
+  1: 'acampdades', 2: 'acampdades', 3: 'acampdades', 4: 'acampdades', 5: 'acampdades',
+  6: 'acampdades', 7: 'acampdades', 8: 'acampdades', 9: 'acampdades', 10: 'acampdades'
+};
+
+// ============================================================
+//  📋 CONFIGURACIÓ DE PROVES
+//  ⚠️ L'enunciat (question) NO es mostra als participants,
+//     només serveix de referència per l'admin.
+//     Els participants troben l'enunciat físicament al lloc.
 // ============================================================
 const DEFAULT_CHALLENGES = {
   a: {
-    name: 'Prova A',
-    question: '🔹 PLACEHOLDER — En SQL, quina comanda s\'utilitza per seleccionar dades d\'una taula?',
-    answers: ['select'],
-    hint: 'És la primera paraula de gairebé totes les consultes SQL'
+    name: 'Prova A — Binari',
+    question: 'Descodificar de base 2 a base 10: 01001100, 101110, 01010101',
+    answers: ['76 46 85', '76, 46, 85', '76,46,85', '76-46-85'],
+    hint: ''
   },
   b: {
-    name: 'Prova B',
-    question: '🔹 PLACEHOLDER — Quin acrònim descriu el procés d\'Extreure, Transformar i Carregar dades?',
-    answers: ['etl'],
-    hint: 'Tres lletres: E_T_L'
+    name: 'Prova B — Pseudocodi',
+    question: 'Quin número surt del codi pseudopython (n,i=0,0; while i<10: if i>2*n: n+=1; i+=1; print(n^3))',
+    answers: ['125'],
+    hint: ''
   },
   c: {
-    name: 'Prova C',
-    question: '🔹 PLACEHOLDER — Quin és el sistema de fitxers distribuït d\'Apache Hadoop? (sigles)',
-    answers: ['hdfs', 'hadoop distributed file system'],
-    hint: 'Hadoop Distributed File ___'
+    name: 'Prova C — Matrius',
+    question: 'Calcular -det de la matriu 2x2 [[13,10],[5,9]] i det de la 3x3 [[6,3,2],[4,5,1],[1,2,4]]',
+    answers: ['-67 69', '-67, 69', '-67,69', '-67 i 69', '-67-69'],
+    hint: ''
   },
   d: {
-    name: 'Prova D',
-    question: '🔹 PLACEHOLDER — Quina biblioteca de Python és la més popular per a anàlisi de dades tabulars?',
-    answers: ['pandas'],
-    hint: 'Comparteix nom amb un animal blanc i negre'
+    name: 'Prova D — Xifrat Cèsar',
+    question: 'Decodificació Cèsar del missatge KNAJAPW amb clau 4',
+    answers: ['oreneta', 'ORENETA'],
+    hint: ''
   },
   e: {
-    name: 'Prova E',
-    question: '🔹 PLACEHOLDER — Quin tipus de base de dades NO utilitza taules relacionals? (genèric, 5 lletres)',
-    answers: ['nosql', 'no sql'],
-    hint: 'El contrari de SQL...'
+    name: 'Prova E — Complexitat',
+    question: 'Quina és la complexitat respecte a b de la funció recursiva potencia(a,b)?',
+    answers: ['o(b)', 'O(b)', 'o(n)', 'O(n)'],
+    hint: ''
   },
   f: {
-    name: 'Prova F',
-    question: '🔹 PLACEHOLDER — Com es diu el procés de reduir la redundància en l\'esquema d\'una base de dades relacional?',
-    answers: ['normalitzacio', 'normalizacion', 'normalitzar', 'normalization'],
-    hint: 'Formes normals: 1NF, 2NF, 3NF...'
+    name: 'Prova F — Xarxes',
+    question: 'Quantes adreces IP tens amb una màscara /26?',
+    answers: ['64', '62'],
+    hint: ''
   },
   g: {
-    name: 'Prova G',
-    question: '🔹 PLACEHOLDER — Quina plataforma de streaming distribuïda creada per LinkedIn s\'utilitza per a pipelines en temps real?',
-    answers: ['kafka', 'apache kafka'],
-    hint: 'Comparteix nom amb un escriptor txec famós'
+    name: 'Prova G — Probabilitat',
+    question: '2 daus: primer parell, segon imparell. Probabilitat que la suma sigui 7?',
+    answers: ['1/3', '0.33', '0,33', '33%'],
+    hint: ''
   },
   h: {
-    name: 'Prova H',
-    question: '🔹 PLACEHOLDER — Quin llenguatge de programació creat per Google és conegut per la seva concurrència i s\'utilitza molt en infraestructura de dades?',
-    answers: ['go', 'golang'],
-    hint: 'Dues lletres, també és un joc de taula asiàtic'
+    name: 'Prova H — Linux',
+    question: 'Comanda de Linux per executar ordres amb permisos d\'administrador sense ser-ho',
+    answers: ['sudo'],
+    hint: ''
   },
   i: {
-    name: 'Prova FINAL',
-    question: '🔹 PLACEHOLDER — Quin teorema estableix que un sistema distribuït no pot garantir simultàniament Consistència, Disponibilitat i Tolerància a particions?',
-    answers: ['cap', 'teorema cap', 'cap theorem'],
-    hint: 'Tres lletres: C_A_P'
+    name: 'Prova FINAL — Circuits',
+    question: 'Calcular Rtotal dels dos circuits (sèrie i paral·lel). Escriure en fraccions si escau.',
+    answers: ['14 20/3', '14, 20/3', '14,20/3', '14 i 20/3', '14-20/3'],
+    hint: ''
   }
 };
 
@@ -215,7 +226,23 @@ const upload = multer({ storage, limits: { fileSize: 10 * 1024 * 1024 } });
 //  API ROUTES
 // ============================================================
 
-// Get team state
+// Team authentication
+app.post('/api/team/auth', (req, res) => {
+  const { teamId, password } = req.body;
+  const id = parseInt(teamId);
+  if (id < 1 || id > 10) return res.status(400).json({ error: 'Equip invàlid' });
+  
+  const normalizedInput = password?.toLowerCase().trim() || '';
+  const normalizedPass = (TEAM_PASSWORDS[id] || '').toLowerCase().trim();
+  
+  if (normalizedInput === normalizedPass) {
+    res.json({ success: true });
+  } else {
+    res.status(401).json({ error: 'Contrasenya incorrecta' });
+  }
+});
+
+// Get team state (NO question/hint sent — they find it at the location)
 app.get('/api/team/:teamId', (req, res) => {
   const teamId = parseInt(req.params.teamId);
   if (teamId < 1 || teamId > 10) return res.status(400).json({ error: 'Equip invàlid' });
@@ -245,8 +272,6 @@ app.get('/api/team/:teamId', (req, res) => {
     totalSteps: 9,
     currentChallengeId,
     challengeName: currentChallenge?.name || null,
-    question: currentChallenge?.question || null,
-    hint: currentChallenge?.hint || null,
     photoUrl,
     finished: team.finishedAt !== null,
     finishedAt: team.finishedAt,
