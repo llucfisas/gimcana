@@ -226,7 +226,7 @@
   });
 
   // Initial load
-  fetch('/api/ranking').then(r => r.json()).then(data => {
+  fetch('/api/ranking', { cache: 'no-store' }).then(r => r.json()).then(data => {
     render({ ranking: data.ranking, gameState: { started: data.started, startTime: data.startTime } });
   });
 </script>
